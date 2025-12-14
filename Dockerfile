@@ -15,3 +15,35 @@ EXPOSE 8080
 
 # Run app
 CMD ["python", "app.py"]
+
+############################### Multi stage docker build ##################################
+
+# Use official Python image
+FROM python:3.9-slim AS installer
+
+# Set working directory
+WORKDIR /app
+
+# Copy files
+COPY requirements.txt .
+
+#install dependencies with first stage and fibal stage
+RUN pip install --upgrade pip \
+    && pip install --prefix=/app/deps -r requirements.txt
+
+
+COPY . .
+
+# Final stage docker build
+FROM gcr.io/distroless/python3-debian12:nonroot
+
+WORKDIR /app
+
+COPY --from=installer /app /app
+
+#Dependencies installed into /app/deps
+ENV PYTHONPATH=/app/deps/lib/python3.9/site-packages
+
+EXPOSE 8080
+# Run app
+CMD ["app.py"]
